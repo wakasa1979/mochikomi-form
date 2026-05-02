@@ -8,24 +8,35 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
   <style>
+    :root {
+      --main: #06c755;
+      --danger: #e53935;
+      --warning: #ff9800;
+      --blue: #1976d2;
+      --bg: #f5f6f8;
+      --text: #222;
+      --muted: #666;
+      --border: #ddd;
+    }
+
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f5f6f8;
+      background: var(--bg);
       margin: 0;
       padding: 16px;
-      color: #222;
+      color: var(--text);
     }
 
     .container {
-      max-width: 560px;
+      max-width: 620px;
       margin: 0 auto;
     }
 
     .card {
       background: #fff;
-      border-radius: 16px;
+      border-radius: 18px;
       padding: 20px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      box-shadow: 0 4px 18px rgba(0,0,0,0.08);
       margin-bottom: 16px;
     }
 
@@ -38,6 +49,12 @@
     h2 {
       font-size: 18px;
       margin: 0 0 12px;
+      line-height: 1.4;
+    }
+
+    h3 {
+      font-size: 16px;
+      margin: 16px 0 8px;
     }
 
     p {
@@ -45,37 +62,57 @@
       margin: 8px 0;
     }
 
+    .sub {
+      font-size: 13px;
+      color: var(--muted);
+      word-break: break-all;
+    }
+
+    .small {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
     .notice {
       background: #fff7e6;
-      border-left: 5px solid #ff9800;
+      border-left: 5px solid var(--warning);
       padding: 12px;
-      border-radius: 8px;
+      border-radius: 10px;
       margin: 12px 0;
-      line-height: 1.6;
+      line-height: 1.7;
     }
 
     .danger {
       background: #ffecec;
-      border-left: 5px solid #e53935;
+      border-left: 5px solid var(--danger);
       padding: 12px;
-      border-radius: 8px;
+      border-radius: 10px;
       margin: 12px 0;
-      line-height: 1.6;
+      line-height: 1.7;
+    }
+
+    .bluebox {
+      background: #eaf3ff;
+      border-left: 5px solid var(--blue);
+      padding: 12px;
+      border-radius: 10px;
+      margin: 12px 0;
+      line-height: 1.7;
     }
 
     .success {
       background: #e9f8ef;
       border-left: 5px solid #2e7d32;
       padding: 12px;
-      border-radius: 8px;
+      border-radius: 10px;
       margin: 12px 0;
-      line-height: 1.6;
+      line-height: 1.7;
     }
 
     label {
       display: block;
       margin-top: 14px;
-      font-weight: 600;
+      font-weight: 700;
     }
 
     input[type="text"],
@@ -84,9 +121,9 @@
       width: 100%;
       box-sizing: border-box;
       margin-top: 6px;
-      padding: 12px;
+      padding: 13px;
       border: 1px solid #ccc;
-      border-radius: 10px;
+      border-radius: 12px;
       font-size: 16px;
       background: #fff;
     }
@@ -96,30 +133,25 @@
       resize: vertical;
     }
 
-    .checkbox-row {
-      display: flex;
-      gap: 10px;
-      align-items: flex-start;
-      margin-top: 16px;
-      line-height: 1.6;
-    }
-
-    .checkbox-row input {
-      margin-top: 5px;
-      transform: scale(1.3);
-    }
-
     button {
       width: 100%;
       border: none;
-      border-radius: 12px;
-      padding: 14px 16px;
+      border-radius: 14px;
+      padding: 15px 16px;
       font-size: 17px;
-      font-weight: 700;
+      font-weight: 800;
       margin-top: 18px;
-      background: #06c755;
+      background: var(--main);
       color: #fff;
       cursor: pointer;
+    }
+
+    button.secondary {
+      background: #607d8b;
+    }
+
+    button.danger-button {
+      background: var(--danger);
     }
 
     button:disabled {
@@ -127,31 +159,112 @@
       cursor: not-allowed;
     }
 
-    .sub {
-      font-size: 13px;
-      color: #666;
-      word-break: break-all;
-    }
-
     .loading {
       text-align: center;
       padding: 32px 12px;
-      color: #666;
-    }
-
-    .small {
-      font-size: 13px;
-      color: #666;
-    }
-
-    .item-list {
-      margin: 8px 0 0;
-      padding-left: 20px;
-      line-height: 1.7;
+      color: var(--muted);
     }
 
     .hidden {
       display: none;
+    }
+
+    .progress {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 14px 0 18px;
+    }
+
+    .progress-item {
+      background: #e0e0e0;
+      border-radius: 999px;
+      padding: 8px 6px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #555;
+    }
+
+    .progress-item.active {
+      background: var(--main);
+      color: #fff;
+    }
+
+    .user-info {
+      background: #f7f7f7;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      margin: 10px 0 14px;
+    }
+
+    .radio-group,
+    .check-group {
+      display: grid;
+      gap: 10px;
+      margin: 12px 0;
+    }
+
+    .choice-card {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 13px;
+      background: #fff;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      line-height: 1.6;
+      font-weight: 600;
+    }
+
+    .choice-card input {
+      margin-top: 5px;
+      transform: scale(1.25);
+      flex-shrink: 0;
+    }
+
+    .choice-card span {
+      display: block;
+    }
+
+    .choice-card small {
+      display: block;
+      color: var(--muted);
+      font-weight: 400;
+      margin-top: 3px;
+    }
+
+    .image-wrap {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      background: #fff;
+      margin: 12px 0;
+    }
+
+    .image-wrap img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .error-message {
+      background: #ffecec;
+      color: #b71c1c;
+      border: 1px solid #ffcdd2;
+      border-radius: 10px;
+      padding: 10px;
+      margin-top: 12px;
+      line-height: 1.6;
+      font-weight: 700;
+    }
+
+    .footer-note {
+      margin-top: 14px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
     }
   </style>
 </head>
@@ -171,8 +284,23 @@
     // ここをGASのWebアプリURLに置き換えてください。
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz59227lEepNC4D4SpW0WMf6ze2_p5JV1TPDCb12YIQv8yhdjKIzc1I8KSSyJSsGFN1/exec';
 
+    // GitHubにアップロードした画像ファイル名
+    const PROHIBITED_IMAGE_URL = 'prohibited-items.png';
+
     let currentAccessToken = '';
     let currentUserStatus = null;
+    let formState = {
+      pcBring: '',
+      pcRuleAck: false,
+      checkUsb: false,
+      checkStorageMedia: false,
+      checkCameraRecorderTablet: false,
+      checkWifiRouter: false,
+      pairCheckStatus: '',
+      pairCheckerName: '',
+      pairNoCheckAck: false,
+      memo: ''
+    };
 
     window.addEventListener('load', initialize);
 
@@ -265,7 +393,7 @@
       }
 
       if (status.result === 'active') {
-        renderConfirmationForm(status);
+        renderStep1(status);
         return;
       }
 
@@ -418,69 +546,319 @@
       `;
     }
 
-    function renderConfirmationForm(status) {
+    function renderProgress(step) {
+      return `
+        <div class="progress">
+          <div class="progress-item ${step === 1 ? 'active' : ''}">1 PC確認</div>
+          <div class="progress-item ${step === 2 ? 'active' : ''}">2 禁止物</div>
+          <div class="progress-item ${step === 3 ? 'active' : ''}">3 第三者確認</div>
+        </div>
+      `;
+    }
+
+    function renderUserInfo(status) {
+      return `
+        <div class="user-info">
+          <p><strong>氏名：</strong>${escapeHtml(status.employeeName || '')}</p>
+          <p><strong>所属：</strong>${escapeHtml(status.department || '')}</p>
+          <p class="sub">LINE表示名：${escapeHtml(status.lineDisplayName || '')}</p>
+        </div>
+      `;
+    }
+
+    function renderStep1(status, errorMessage) {
       const app = document.getElementById('app');
 
       app.innerHTML = `
         <h1>持ち込み禁止物確認フォーム</h1>
+        ${renderProgress(1)}
+        ${renderUserInfo(status)}
 
-        <p><strong>氏名：</strong>${escapeHtml(status.employeeName || '')}</p>
-        <p><strong>所属：</strong>${escapeHtml(status.department || '')}</p>
+        <h2>STEP 1：PCの持ち込み確認</h2>
 
-        <div class="danger">
-          構内持ち込み禁止物について、各自で手荷物の確認を行ってください。
+        <p>
+          私物PCを構内へ持ち込む場合は、所定のルールに従う必要があります。
+        </p>
+
+        <div class="radio-group">
+          <label class="choice-card">
+            <input type="radio" name="pcBring" value="持ち込む" ${formState.pcBring === '持ち込む' ? 'checked' : ''} onchange="onPcBringChange(this.value)">
+            <span>
+              PCを持ち込む
+              <small>私物PCを構内へ持ち込む場合はこちらを選択してください。</small>
+            </span>
+          </label>
+
+          <label class="choice-card">
+            <input type="radio" name="pcBring" value="持ち込まない" ${formState.pcBring === '持ち込まない' ? 'checked' : ''} onchange="onPcBringChange(this.value)">
+            <span>
+              PCを持ち込まない
+              <small>私物PCを持ち込まない場合はこちらを選択してください。</small>
+            </span>
+          </label>
         </div>
 
-        <h2>主な持ち込み禁止物</h2>
-        <ul class="item-list">
-          <li>USBメモリ、SDカード、microSDカード等の記録媒体</li>
-          <li>録画・撮影機器</li>
-          <li>録音機器、ボイスレコーダー等</li>
-          <li>その他、構内ルールで禁止されている物品</li>
-        </ul>
-
-        <div class="checkbox-row">
-          <input type="checkbox" id="confirmCheck">
-          <div>
-            私は、構内持ち込み禁止物を所持していないことを確認しました。<br>
-            このチェックをもって、持ち込み禁止物を所持していないことの宣誓とします。
+        <div id="pcBringNotice" class="${formState.pcBring === '持ち込む' ? '' : 'hidden'}">
+          <div class="danger">
+            PCを持ち込む場合は、窓口にてセキュリティタグの取り付けを行い、PCカメラにシールの貼り付けも行ってください。
           </div>
+
+          <label class="choice-card">
+            <input type="checkbox" id="pcRuleAck" ${formState.pcRuleAck ? 'checked' : ''} onchange="formState.pcRuleAck = this.checked">
+            <span>上記内容を確認し、了解しました。</span>
+          </label>
+        </div>
+
+        ${errorMessage ? `<div class="error-message">${escapeHtml(errorMessage)}</div>` : ''}
+
+        <button onclick="goStep2()">次へ進む</button>
+      `;
+    }
+
+    function onPcBringChange(value) {
+      formState.pcBring = value;
+
+      if (value === '持ち込まない') {
+        formState.pcRuleAck = false;
+      }
+
+      const notice = document.getElementById('pcBringNotice');
+      if (notice) {
+        if (value === '持ち込む') {
+          notice.classList.remove('hidden');
+        } else {
+          notice.classList.add('hidden');
+        }
+      }
+    }
+
+    function goStep2() {
+      if (!formState.pcBring) {
+        renderStep1(currentUserStatus, 'PCの持ち込み有無を選択してください。');
+        return;
+      }
+
+      if (formState.pcBring === '持ち込む') {
+        const ack = document.getElementById('pcRuleAck');
+        formState.pcRuleAck = ack ? ack.checked : false;
+
+        if (!formState.pcRuleAck) {
+          renderStep1(currentUserStatus, 'PC持ち込み時の注意事項を確認し、「了解しました」にチェックしてください。');
+          return;
+        }
+      }
+
+      renderStep2(currentUserStatus);
+    }
+
+    function renderStep2(status, errorMessage) {
+      const app = document.getElementById('app');
+
+      app.innerHTML = `
+        <h1>持ち込み禁止物確認フォーム</h1>
+        ${renderProgress(2)}
+        ${renderUserInfo(status)}
+
+        <h2>STEP 2：持ち込み禁止物の確認</h2>
+
+        <div class="image-wrap">
+          <img src="${PROHIBITED_IMAGE_URL}" alt="持ち込み禁止物一覧">
+        </div>
+
+        <div class="danger">
+          以下はすべて持ち込み禁止です。<br>
+          これらの物品を自身が持っていないことを確認したら、すべてにチェックしてください。
+        </div>
+
+        <div class="check-group">
+          <label class="choice-card">
+            <input type="checkbox" id="checkUsb" ${formState.checkUsb ? 'checked' : ''}>
+            <span>USBメモリ</span>
+          </label>
+
+          <label class="choice-card">
+            <input type="checkbox" id="checkStorageMedia" ${formState.checkStorageMedia ? 'checked' : ''}>
+            <span>外付けHDD/SSD・SDカード・CD等記憶メディア</span>
+          </label>
+
+          <label class="choice-card">
+            <input type="checkbox" id="checkCameraRecorderTablet" ${formState.checkCameraRecorderTablet ? 'checked' : ''}>
+            <span>カメラ・録音機器・タブレット端末</span>
+          </label>
+
+          <label class="choice-card">
+            <input type="checkbox" id="checkWifiRouter" ${formState.checkWifiRouter ? 'checked' : ''}>
+            <span>Wi-fiルータ（モバイルルータ）</span>
+          </label>
+        </div>
+
+        ${errorMessage ? `<div class="error-message">${escapeHtml(errorMessage)}</div>` : ''}
+
+        <button onclick="goStep3()">次へ進む</button>
+        <button class="secondary" onclick="renderStep1(currentUserStatus)">前へ戻る</button>
+      `;
+    }
+
+    function goStep3() {
+      formState.checkUsb = document.getElementById('checkUsb').checked;
+      formState.checkStorageMedia = document.getElementById('checkStorageMedia').checked;
+      formState.checkCameraRecorderTablet = document.getElementById('checkCameraRecorderTablet').checked;
+      formState.checkWifiRouter = document.getElementById('checkWifiRouter').checked;
+
+      if (!formState.checkUsb || !formState.checkStorageMedia || !formState.checkCameraRecorderTablet || !formState.checkWifiRouter) {
+        renderStep2(currentUserStatus, '持ち込み禁止物の確認項目をすべてチェックしてください。');
+        return;
+      }
+
+      renderStep3(currentUserStatus);
+    }
+
+    function renderStep3(status, errorMessage) {
+      const app = document.getElementById('app');
+
+      app.innerHTML = `
+        <h1>持ち込み禁止物確認フォーム</h1>
+        ${renderProgress(3)}
+        ${renderUserInfo(status)}
+
+        <h2>STEP 3：相互チェック</h2>
+
+        <div class="bluebox">
+          第三者による手荷物の確認を行ってください。
+        </div>
+
+        <div class="radio-group">
+          <label class="choice-card">
+            <input type="radio" name="pairCheckStatus" value="実施済み" ${formState.pairCheckStatus === '実施済み' ? 'checked' : ''} onchange="onPairCheckChange(this.value)">
+            <span>
+              実施済み
+              <small>第三者に手荷物確認を行ってもらった場合はこちらを選択してください。</small>
+            </span>
+          </label>
+
+          <label class="choice-card">
+            <input type="radio" name="pairCheckStatus" value="未実施" ${formState.pairCheckStatus === '未実施' ? 'checked' : ''} onchange="onPairCheckChange(this.value)">
+            <span>
+              未実施
+              <small>徒歩通勤などで確認者がいなかった場合のみ選択してください。</small>
+            </span>
+          </label>
+        </div>
+
+        <div id="pairDoneArea" class="${formState.pairCheckStatus === '実施済み' ? '' : 'hidden'}">
+          <h3>第三者確認の実施者について</h3>
+          <p>手荷物確認を行っていただいた第三者の氏名を入力してください。</p>
+
+          <label>第三者確認者氏名</label>
+          <input type="text" id="pairCheckerName" value="${escapeHtml(formState.pairCheckerName || '')}" placeholder="例：山田 太郎">
+        </div>
+
+        <div id="pairNotDoneArea" class="${formState.pairCheckStatus === '未実施' ? '' : 'hidden'}">
+          <div class="danger">
+            <strong>第三者確認ができなかった方へ</strong><br>
+            第三者確認未実施、徒歩通勤などで確認者がいなかった等やむを得ない事情がある場合は、出社後速やかに上長へ報告してください。<br><br>
+            ※原則、第三者確認は省略できません。やむを得ない事情がある場合のみです。
+          </div>
+
+          <label class="choice-card">
+            <input type="checkbox" id="pairNoCheckAck" ${formState.pairNoCheckAck ? 'checked' : ''}>
+            <span>上記内容を確認いたしました。</span>
+          </label>
         </div>
 
         <label>メモ・補足事項</label>
-        <textarea id="memo" placeholder="特記事項があれば入力してください。なければ空欄でOKです。"></textarea>
+        <textarea id="memo" placeholder="特記事項があれば入力してください。なければ空欄でOKです。">${escapeHtml(formState.memo || '')}</textarea>
 
-        <button id="submitButton" onclick="submitConfirmation()">確認して送信する</button>
+        ${errorMessage ? `<div class="error-message">${escapeHtml(errorMessage)}</div>` : ''}
 
-        <p class="sub">
-          LINE表示名：${escapeHtml(status.lineDisplayName || '')}
+        <button onclick="submitConfirmation()">確認して送信する</button>
+        <button class="secondary" onclick="renderStep2(currentUserStatus)">前へ戻る</button>
+
+        <p class="footer-note">
+          送信内容は、LINEアカウント情報と紐づけて記録されます。
         </p>
       `;
     }
 
-    function submitConfirmation() {
-      const checked = document.getElementById('confirmCheck').checked;
+    function onPairCheckChange(value) {
+      formState.pairCheckStatus = value;
 
-      if (!checked) {
-        alert('宣誓チェックを入れてください。');
+      if (value === '実施済み') {
+        formState.pairNoCheckAck = false;
+      }
+
+      if (value === '未実施') {
+        formState.pairCheckerName = '';
+      }
+
+      const doneArea = document.getElementById('pairDoneArea');
+      const notDoneArea = document.getElementById('pairNotDoneArea');
+
+      if (doneArea && notDoneArea) {
+        if (value === '実施済み') {
+          doneArea.classList.remove('hidden');
+          notDoneArea.classList.add('hidden');
+        } else if (value === '未実施') {
+          doneArea.classList.add('hidden');
+          notDoneArea.classList.remove('hidden');
+        }
+      }
+    }
+
+    function submitConfirmation() {
+      const pairCheckerNameInput = document.getElementById('pairCheckerName');
+      const pairNoCheckAckInput = document.getElementById('pairNoCheckAck');
+      const memoInput = document.getElementById('memo');
+
+      if (pairCheckerNameInput) {
+        formState.pairCheckerName = pairCheckerNameInput.value.trim();
+      }
+
+      if (pairNoCheckAckInput) {
+        formState.pairNoCheckAck = pairNoCheckAckInput.checked;
+      }
+
+      if (memoInput) {
+        formState.memo = memoInput.value.trim();
+      }
+
+      if (!formState.pairCheckStatus) {
+        renderStep3(currentUserStatus, '第三者確認の実施状況を選択してください。');
         return;
       }
 
-      const button = document.getElementById('submitButton');
-      button.disabled = true;
-      button.textContent = '送信中...';
+      if (formState.pairCheckStatus === '実施済み' && !formState.pairCheckerName) {
+        renderStep3(currentUserStatus, '第三者確認を行った方の氏名を入力してください。');
+        return;
+      }
+
+      if (formState.pairCheckStatus === '未実施' && !formState.pairNoCheckAck) {
+        renderStep3(currentUserStatus, '第三者確認未実施時の注意事項を確認してください。');
+        return;
+      }
+
+      const buttons = document.querySelectorAll('button');
+      buttons.forEach(function(button) {
+        button.disabled = true;
+      });
 
       callGasJsonp({
         action: 'submit',
         accessToken: currentAccessToken,
-        checked: 'true',
-        memo: document.getElementById('memo').value,
+        pcBring: formState.pcBring,
+        pcRuleAck: formState.pcRuleAck ? 'true' : 'false',
+        checkUsb: formState.checkUsb ? 'true' : 'false',
+        checkStorageMedia: formState.checkStorageMedia ? 'true' : 'false',
+        checkCameraRecorderTablet: formState.checkCameraRecorderTablet ? 'true' : 'false',
+        checkWifiRouter: formState.checkWifiRouter ? 'true' : 'false',
+        pairCheckStatus: formState.pairCheckStatus,
+        pairCheckerName: formState.pairCheckerName,
+        pairNoCheckAck: formState.pairNoCheckAck ? 'true' : 'false',
+        memo: formState.memo,
         userAgent: navigator.userAgent
       }, function(response) {
         if (!response.ok) {
-          button.disabled = false;
-          button.textContent = '確認して送信する';
-          showError(response.message || '送信に失敗しました。');
+          renderStep3(currentUserStatus, response.message || '送信に失敗しました。');
           return;
         }
 
@@ -492,7 +870,7 @@
       const app = document.getElementById('app');
 
       app.innerHTML = `
-        <h1>完了</h1>
+        <h1>送信完了</h1>
         <div class="success">
           ${escapeHtml(message)}
         </div>
