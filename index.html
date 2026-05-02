@@ -79,7 +79,8 @@
     }
 
     input[type="text"],
-    textarea {
+    textarea,
+    select {
       width: 100%;
       box-sizing: border-box;
       margin-top: 6px;
@@ -148,6 +149,10 @@
       padding-left: 20px;
       line-height: 1.7;
     }
+
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 
@@ -163,7 +168,7 @@
   <script>
     const LIFF_ID = '2009955117-UMaoHvKh';
 
-    // ここをGASの新しいWebアプリURLに置き換えてください。
+    // ここをGASのWebアプリURLに置き換えてください。
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz59227lEepNC4D4SpW0WMf6ze2_p5JV1TPDCb12YIQv8yhdjKIzc1I8KSSyJSsGFN1/exec';
 
     let currentAccessToken = '';
@@ -282,20 +287,82 @@
           LINE表示名：${escapeHtml(status.lineDisplayName || '')}
         </p>
 
-        <label>社員番号</label>
-        <input type="text" id="employeeNo" placeholder="例：12345">
-
         <label>氏名</label>
         <input type="text" id="employeeName" placeholder="例：山田 太郎">
 
         <label>所属</label>
-        <input type="text" id="department" placeholder="例：ETCH-WET team">
+        <select id="departmentSelect" onchange="toggleOtherDepartment()">
+          <option value="">選択してください</option>
+          <option value="ETCH">ETCH</option>
+          <option value="DDP">DDP</option>
+          <option value="SU">SU</option>
+          <option value="FEP">FEP</option>
+          <option value="MDP">MDP</option>
+          <option value="CE Support(パーツチーム)">CE Support(パーツチーム)</option>
+          <option value="Safety">Safety</option>
+          <option value="VirusCheck">VirusCheck</option>
+          <option value="その他">その他</option>
+        </select>
+
+        <div id="otherDepartmentArea" class="hidden">
+          <label>その他の所属</label>
+          <input type="text" id="otherDepartment" placeholder="所属を入力してください">
+        </div>
 
         <button id="registerButton" onclick="submitRegister()">初回登録を申請する</button>
       `;
     }
 
+    function toggleOtherDepartment() {
+      const select = document.getElementById('departmentSelect');
+      const otherArea = document.getElementById('otherDepartmentArea');
+
+      if (select.value === 'その他') {
+        otherArea.classList.remove('hidden');
+      } else {
+        otherArea.classList.add('hidden');
+        const otherInput = document.getElementById('otherDepartment');
+        if (otherInput) {
+          otherInput.value = '';
+        }
+      }
+    }
+
+    function getDepartmentValue() {
+      const select = document.getElementById('departmentSelect');
+
+      if (!select || !select.value) {
+        return '';
+      }
+
+      if (select.value === 'その他') {
+        const otherInput = document.getElementById('otherDepartment');
+        const otherValue = otherInput ? otherInput.value.trim() : '';
+
+        if (!otherValue) {
+          return '';
+        }
+
+        return 'その他：' + otherValue;
+      }
+
+      return select.value;
+    }
+
     function submitRegister() {
+      const employeeName = document.getElementById('employeeName').value.trim();
+      const department = getDepartmentValue();
+
+      if (!employeeName) {
+        alert('氏名を入力してください。');
+        return;
+      }
+
+      if (!department) {
+        alert('所属を選択してください。その他を選んだ場合は所属名を入力してください。');
+        return;
+      }
+
       const button = document.getElementById('registerButton');
       button.disabled = true;
       button.textContent = '登録中...';
@@ -303,9 +370,8 @@
       callGasJsonp({
         action: 'register',
         accessToken: currentAccessToken,
-        employeeNo: document.getElementById('employeeNo').value,
-        employeeName: document.getElementById('employeeName').value,
-        department: document.getElementById('department').value,
+        employeeName: employeeName,
+        department: department,
         userAgent: navigator.userAgent
       }, function(response) {
         if (!response.ok) {
@@ -330,7 +396,6 @@
           管理者が社員マスタを確認し、有効化するまでお待ちください。
         </div>
 
-        <p><strong>社員番号：</strong>${escapeHtml(status.employeeNo || '')}</p>
         <p><strong>氏名：</strong>${escapeHtml(status.employeeName || '')}</p>
         <p><strong>所属：</strong>${escapeHtml(status.department || '')}</p>
         <p class="sub">LINE表示名：${escapeHtml(status.lineDisplayName || '')}</p>
@@ -348,8 +413,8 @@
           管理者に確認してください。
         </div>
 
-        <p><strong>社員番号：</strong>${escapeHtml(status.employeeNo || '')}</p>
         <p><strong>氏名：</strong>${escapeHtml(status.employeeName || '')}</p>
+        <p><strong>所属：</strong>${escapeHtml(status.department || '')}</p>
       `;
     }
 
@@ -360,7 +425,6 @@
         <h1>持ち込み禁止物確認フォーム</h1>
 
         <p><strong>氏名：</strong>${escapeHtml(status.employeeName || '')}</p>
-        <p><strong>社員番号：</strong>${escapeHtml(status.employeeNo || '')}</p>
         <p><strong>所属：</strong>${escapeHtml(status.department || '')}</p>
 
         <div class="danger">
