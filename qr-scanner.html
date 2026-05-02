@@ -55,6 +55,20 @@
       background: #607d8b;
     }
 
+    button.zoom-button {
+      width: auto;
+      min-width: 72px;
+      margin-top: 0;
+      padding: 12px 14px;
+      font-size: 18px;
+      background: #1976d2;
+    }
+
+    button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+
     #reader {
       margin-top: 16px;
       border-radius: 14px;
@@ -87,6 +101,51 @@
       word-break: break-all;
       line-height: 1.6;
     }
+
+    .zoom-controls {
+      display: none;
+      margin-top: 14px;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 14px;
+      background: #f8fbff;
+    }
+
+    .zoom-controls.active {
+      display: block;
+    }
+
+    .zoom-title {
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: #1976d2;
+    }
+
+    .zoom-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .zoom-label {
+      text-align: center;
+      font-weight: 800;
+      margin-top: 8px;
+      color: #333;
+    }
+
+    input[type="range"] {
+      width: 100%;
+    }
+
+    .zoom-note {
+      font-size: 12px;
+      color: #666;
+      margin-top: 8px;
+      line-height: 1.6;
+    }
   </style>
 </head>
 
@@ -102,10 +161,28 @@
         10〜25cmほど離して、QRコード全体が画面内に入るようにしてください。
       </div>
 
-      <button onclick="startScanner()">カメラを起動してQRを読む</button>
+      <button id="startButton" onclick="startScanner()">カメラを起動してQRを読む</button>
       <button class="secondary" onclick="goBack()">戻る</button>
 
       <div id="message" class="small"></div>
+
+      <div id="zoomControls" class="zoom-controls">
+        <div class="zoom-title">カメラ倍率調整</div>
+
+        <div class="zoom-label" id="zoomLabel">倍率：-</div>
+
+        <div class="zoom-row">
+          <button type="button" class="zoom-button" onclick="zoomOut()">−</button>
+          <input type="range" id="zoomSlider" min="1" max="3" step="0.1" value="3" oninput="onZoomSliderInput(this.value)">
+          <button type="button" class="zoom-button" onclick="zoomIn()">＋</button>
+        </div>
+
+        <div class="zoom-note">
+          QRが小さい場合は倍率を上げてください。<br>
+          近づけすぎてボケる場合は、少し離して倍率で調整してください。
+        </div>
+      </div>
+
       <div id="reader"></div>
     </div>
   </div>
@@ -113,6 +190,15 @@
   <script>
     let html5QrCode = null;
     let isScanned = false;
+
+    let cameraTrack = null;
+    let zoomSupported = false;
+    let zoomMin = 1;
+    let zoomMax = 1;
+    let zoomStep = 0.1;
+    let currentZoom = 1;
+
+    const INITIAL_ZOOM = 3;
 
     const params = new URLSearchParams(window.location.search);
     const returnUrl = params.get('returnUrl') || '';
@@ -126,7 +212,6 @@
     function normalizeQrValue(value) {
       let text = String(value || '').trim();
 
-      // QRの中身がURLの場合、id / loginId / employeeNo を優先して取り出す
       try {
         const url = new URL(text);
         const fromUrl =
@@ -142,13 +227,11 @@
         // URLでなければ無視
       }
 
-      // 「社員番号:1234」「ID=1234」のような形式にも一応対応
       const match = text.match(/(?:社員番号|employeeNo|loginId|ID|id)[：:\s=]*([A-Za-z0-9_-]+)/i);
       if (match && match[1]) {
         return match[1].trim();
       }
 
-      // 通常はQRの中身がそのまま社員番号
       return text;
     }
 
@@ -163,6 +246,10 @@
       }
 
       try {
+        const startButton = document.getElementById('startButton');
+        startButton.disabled = true;
+        startButton.textContent = 'カメラ起動中...';
+
         html5QrCode = new Html5Qrcode('reader');
 
         await html5QrCode.start(
@@ -175,63 +262,141 @@
           function() {}
         );
 
-        // 対応端末では初期倍率を3倍にする
-        await applyInitialZoom(3);
+        await setupZoomControls(INITIAL_ZOOM);
 
-        showMessage('カメラを起動しました。QRコードを枠内に表示してください。', false);
+        if (zoomSupported) {
+          showMessage('カメラを起動しました。初期倍率を約' + formatZoom(currentZoom) + '倍に設定しました。QRコードを枠内に表示してください。', false);
+        } else {
+          showMessage('カメラを起動しました。この端末ではズーム操作に対応していないため、通常倍率で読み取ります。', false);
+        }
 
       } catch (error) {
+        const startButton = document.getElementById('startButton');
+        startButton.disabled = false;
+        startButton.textContent = 'カメラを起動してQRを読む';
+
         showMessage('カメラを起動できませんでした。ブラウザのカメラ許可設定を確認してください。', true);
       }
     }
 
-    async function applyInitialZoom(targetZoom) {
+    async function setupZoomControls(targetZoom) {
       try {
-        const video = document.querySelector('#reader video');
+        cameraTrack = getCameraTrack();
 
-        if (!video || !video.srcObject) {
-          showMessage('カメラは起動しましたが、この端末ではズーム設定を確認できませんでした。', false);
+        if (!cameraTrack) {
+          zoomSupported = false;
           return;
         }
 
-        const tracks = video.srcObject.getVideoTracks();
-
-        if (!tracks || tracks.length === 0) {
-          showMessage('カメラは起動しましたが、映像トラックを取得できませんでした。', false);
+        if (!cameraTrack.getCapabilities || !cameraTrack.applyConstraints) {
+          zoomSupported = false;
           return;
         }
 
-        const track = tracks[0];
-
-        if (!track.getCapabilities || !track.applyConstraints) {
-          showMessage('カメラは起動しましたが、この端末はズーム制御に対応していません。', false);
-          return;
-        }
-
-        const capabilities = track.getCapabilities();
+        const capabilities = cameraTrack.getCapabilities();
 
         if (!capabilities.zoom) {
-          showMessage('カメラは起動しましたが、この端末はズーム制御に対応していません。', false);
+          zoomSupported = false;
           return;
         }
 
-        const minZoom = capabilities.zoom.min || 1;
-        const maxZoom = capabilities.zoom.max || targetZoom;
+        zoomSupported = true;
 
-        const zoomValue = Math.min(Math.max(targetZoom, minZoom), maxZoom);
+        zoomMin = typeof capabilities.zoom.min === 'number' ? capabilities.zoom.min : 1;
+        zoomMax = typeof capabilities.zoom.max === 'number' ? capabilities.zoom.max : targetZoom;
+        zoomStep = typeof capabilities.zoom.step === 'number' && capabilities.zoom.step > 0
+          ? capabilities.zoom.step
+          : 0.1;
 
-        await track.applyConstraints({
+        const slider = document.getElementById('zoomSlider');
+        slider.min = zoomMin;
+        slider.max = zoomMax;
+        slider.step = zoomStep;
+
+        const initialZoom = clamp(targetZoom, zoomMin, zoomMax);
+
+        await setZoom(initialZoom);
+
+        document.getElementById('zoomControls').classList.add('active');
+
+      } catch (error) {
+        zoomSupported = false;
+      }
+    }
+
+    function getCameraTrack() {
+      const video = document.querySelector('#reader video');
+
+      if (!video || !video.srcObject) {
+        return null;
+      }
+
+      const tracks = video.srcObject.getVideoTracks();
+
+      if (!tracks || tracks.length === 0) {
+        return null;
+      }
+
+      return tracks[0];
+    }
+
+    async function setZoom(value) {
+      if (!zoomSupported || !cameraTrack) {
+        return;
+      }
+
+      const zoomValue = clamp(Number(value), zoomMin, zoomMax);
+
+      try {
+        await cameraTrack.applyConstraints({
           advanced: [
             { zoom: zoomValue }
           ]
         });
 
-        showMessage('カメラを起動しました。初期倍率を約' + zoomValue + '倍に設定しました。QRコードを枠内に表示してください。', false);
+        currentZoom = zoomValue;
+
+        const slider = document.getElementById('zoomSlider');
+        const label = document.getElementById('zoomLabel');
+
+        slider.value = currentZoom;
+        label.textContent = '倍率：約' + formatZoom(currentZoom) + '倍';
 
       } catch (error) {
-        // ズーム非対応端末では通常倍率のまま使う
-        showMessage('カメラを起動しました。この端末ではズーム設定ができないため、通常倍率で読み取ります。', false);
+        showMessage('この端末では指定した倍率に変更できませんでした。', true);
       }
+    }
+
+    function zoomIn() {
+      if (!zoomSupported) {
+        return;
+      }
+
+      setZoom(currentZoom + zoomStep);
+    }
+
+    function zoomOut() {
+      if (!zoomSupported) {
+        return;
+      }
+
+      setZoom(currentZoom - zoomStep);
+    }
+
+    function onZoomSliderInput(value) {
+      if (!zoomSupported) {
+        return;
+      }
+
+      setZoom(value);
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    function formatZoom(value) {
+      return Math.round(Number(value) * 10) / 10;
     }
 
     async function onScanSuccess(decodedText) {
