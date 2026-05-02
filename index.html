@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>持ち込み禁止物確認フォーム</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f6f8;
+      margin: 0;
+      padding: 16px;
+      color: #222;
+    }
+
+    .container {
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 22px;
+      margin: 0 0 12px;
+      line-height: 1.4;
+    }
+
+    h2 {
+      font-size: 18px;
+      margin: 0 0 12px;
+    }
+
+    p {
+      line-height: 1.7;
+      margin: 8px 0;
+    }
+
+    .notice {
+      background: #fff7e6;
+      border-left: 5px solid #ff9800;
+      padding: 12px;
+      border-radius: 8px;
+      margin: 12px 0;
+      line-height: 1.6;
+    }
+
+    .danger {
+      background: #ffecec;
+      border-left: 5px solid #e53935;
+      padding: 12px;
+      border-radius: 8px;
+      margin: 12px 0;
+      line-height: 1.6;
+    }
+
+    .success {
+      background: #e9f8ef;
+      border-left: 5px solid #2e7d32;
+      padding: 12px;
+      border-radius: 8px;
+      margin: 12px 0;
+      line-height: 1.6;
+    }
+
+    label {
+      display: block;
+      margin-top: 14px;
+      font-weight: 600;
+    }
+
+    input[type="text"],
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 6px;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 16px;
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .checkbox-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin-top: 16px;
+      line-height: 1.6;
+    }
+
+    .checkbox-row input {
+      margin-top: 5px;
+      transform: scale(1.3);
+    }
+
+    button {
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 17px;
+      font-weight: 700;
+      margin-top: 18px;
+      background: #06c755;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+
+    .sub {
+      font-size: 13px;
+      color: #666;
+      word-break: break-all;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 32px 12px;
+      color: #666;
+    }
+
+    .small {
+      font-size: 13px;
+      color: #666;
+    }
+
+    .item-list {
+      margin: 8px 0 0;
+      padding-left: 20px;
+      line-height: 1.7;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div id="app" class="card">
+      <div class="loading">
+        LINE認証を確認しています...
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const LIFF_ID = '2009955117-UMaoHvKh';
+
+    // ここをGASの新しいWebアプリURLに置き換えてください。
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz59227lEepNC4D4SpW0WMf6ze2_p5JV1TPDCb12YIQv8yhdjKIzc1I8KSSyJSsGFN1/exec';
+
+    let currentAccessToken = '';
+    let currentUserStatus = null;
+
+    window.addEventListener('load', initialize);
+
+    async function initialize() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        currentAccessToken = liff.getAccessToken();
+
+        if (!currentAccessToken) {
+          showError('LINEのアクセストークンを取得できませんでした。LIFF設定を確認してください。');
+          return;
+        }
+
+        callGasJsonp({
+          action: 'getStatus',
+          accessToken: currentAccessToken
+        }, function(response) {
+          if (!response.ok) {
+            showError(response.message || 'ユーザー状態を取得できませんでした。');
+            return;
+          }
+
+          currentUserStatus = response;
+          renderByStatus(response);
+        });
+
+      } catch (error) {
+        showError(error.message || error);
+      }
+    }
+
+    function callGasJsonp(params, callback) {
+      const callbackName = 'jsonpCallback_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+
+      window[callbackName] = function(response) {
+        try {
+          callback(response);
+        } finally {
+          delete window[callbackName];
+          if (script && script.parentNode) {
+            script.parentNode.removeChild(script);
+          }
+        }
+      };
+
+      params.callback = callbackName;
+
+      const query = Object.keys(params)
+        .map(function(key) {
+          return encodeURIComponent(key) + '=' + encodeURIComponent(params[key] || '');
+        })
+        .join('&');
+
+      const script = document.createElement('script');
+      script.src = GAS_WEB_APP_URL + '?' + query;
+
+      script.onerror = function() {
+        delete window[callbackName];
+        showError('GASとの通信に失敗しました。WebアプリURLやデプロイ設定を確認してください。');
+      };
+
+      document.body.appendChild(script);
+    }
+
+    function renderByStatus(status) {
+      if (!status || !status.result) {
+        showError('ユーザー状態を取得できませんでした。');
+        return;
+      }
+
+      if (status.result === 'unregistered') {
+        renderRegisterForm(status);
+        return;
+      }
+
+      if (status.result === 'pending') {
+        renderPending(status);
+        return;
+      }
+
+      if (status.result === 'stopped') {
+        renderStopped(status);
+        return;
+      }
+
+      if (status.result === 'active') {
+        renderConfirmationForm(status);
+        return;
+      }
+
+      showError('不明な状態です。');
+    }
+
+    function renderRegisterForm(status) {
+      const app = document.getElementById('app');
+
+      app.innerHTML = `
+        <h1>初回登録</h1>
+
+        <div class="notice">
+          このLINEアカウントはまだ社員マスタに登録されていません。<br>
+          初回登録後、管理者の承認が完了すると確認フォームを利用できます。
+        </div>
+
+        <p class="small">
+          LINE表示名：${escapeHtml(status.lineDisplayName || '')}
+        </p>
+
+        <label>社員番号</label>
+        <input type="text" id="employeeNo" placeholder="例：12345">
+
+        <label>氏名</label>
+        <input type="text" id="employeeName" placeholder="例：山田 太郎">
+
+        <label>所属</label>
+        <input type="text" id="department" placeholder="例：ETCH-WET team">
+
+        <button id="registerButton" onclick="submitRegister()">初回登録を申請する</button>
+      `;
+    }
+
+    function submitRegister() {
+      const button = document.getElementById('registerButton');
+      button.disabled = true;
+      button.textContent = '登録中...';
+
+      callGasJsonp({
+        action: 'register',
+        accessToken: currentAccessToken,
+        employeeNo: document.getElementById('employeeNo').value,
+        employeeName: document.getElementById('employeeName').value,
+        department: document.getElementById('department').value,
+        userAgent: navigator.userAgent
+      }, function(response) {
+        if (!response.ok) {
+          button.disabled = false;
+          button.textContent = '初回登録を申請する';
+          showError(response.message || '登録に失敗しました。');
+          return;
+        }
+
+        showSuccess(response.message || '初回登録を受け付けました。');
+      });
+    }
+
+    function renderPending(status) {
+      const app = document.getElementById('app');
+
+      app.innerHTML = `
+        <h1>管理者承認待ち</h1>
+
+        <div class="notice">
+          初回登録は完了しています。<br>
+          管理者が社員マスタを確認し、有効化するまでお待ちください。
+        </div>
+
+        <p><strong>社員番号：</strong>${escapeHtml(status.employeeNo || '')}</p>
+        <p><strong>氏名：</strong>${escapeHtml(status.employeeName || '')}</p>
+        <p><strong>所属：</strong>${escapeHtml(status.department || '')}</p>
+        <p class="sub">LINE表示名：${escapeHtml(status.lineDisplayName || '')}</p>
+      `;
+    }
+
+    function renderStopped(status) {
+      const app = document.getElementById('app');
+
+      app.innerHTML = `
+        <h1>利用停止中</h1>
+
+        <div class="danger">
+          このLINEアカウントは現在停止されています。<br>
+          管理者に確認してください。
+        </div>
+
+        <p><strong>社員番号：</strong>${escapeHtml(status.employeeNo || '')}</p>
+        <p><strong>氏名：</strong>${escapeHtml(status.employeeName || '')}</p>
+      `;
+    }
+
+    function renderConfirmationForm(status) {
+      const app = document.getElementById('app');
+
+      app.innerHTML = `
+        <h1>持ち込み禁止物確認フォーム</h1>
+
+        <p><strong>氏名：</strong>${escapeHtml(status.employeeName || '')}</p>
+        <p><strong>社員番号：</strong>${escapeHtml(status.employeeNo || '')}</p>
+        <p><strong>所属：</strong>${escapeHtml(status.department || '')}</p>
+
+        <div class="danger">
+          構内持ち込み禁止物について、各自で手荷物の確認を行ってください。
+        </div>
+
+        <h2>主な持ち込み禁止物</h2>
+        <ul class="item-list">
+          <li>USBメモリ、SDカード、microSDカード等の記録媒体</li>
+          <li>録画・撮影機器</li>
+          <li>録音機器、ボイスレコーダー等</li>
+          <li>その他、構内ルールで禁止されている物品</li>
+        </ul>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="confirmCheck">
+          <div>
+            私は、構内持ち込み禁止物を所持していないことを確認しました。<br>
+            このチェックをもって、持ち込み禁止物を所持していないことの宣誓とします。
+          </div>
+        </div>
+
+        <label>メモ・補足事項</label>
+        <textarea id="memo" placeholder="特記事項があれば入力してください。なければ空欄でOKです。"></textarea>
+
+        <button id="submitButton" onclick="submitConfirmation()">確認して送信する</button>
+
+        <p class="sub">
+          LINE表示名：${escapeHtml(status.lineDisplayName || '')}
+        </p>
+      `;
+    }
+
+    function submitConfirmation() {
+      const checked = document.getElementById('confirmCheck').checked;
+
+      if (!checked) {
+        alert('宣誓チェックを入れてください。');
+        return;
+      }
+
+      const button = document.getElementById('submitButton');
+      button.disabled = true;
+      button.textContent = '送信中...';
+
+      callGasJsonp({
+        action: 'submit',
+        accessToken: currentAccessToken,
+        checked: 'true',
+        memo: document.getElementById('memo').value,
+        userAgent: navigator.userAgent
+      }, function(response) {
+        if (!response.ok) {
+          button.disabled = false;
+          button.textContent = '確認して送信する';
+          showError(response.message || '送信に失敗しました。');
+          return;
+        }
+
+        showSuccess(response.message || '送信が完了しました。');
+      });
+    }
+
+    function showSuccess(message) {
+      const app = document.getElementById('app');
+
+      app.innerHTML = `
+        <h1>完了</h1>
+        <div class="success">
+          ${escapeHtml(message)}
+        </div>
+        <p>
+          ご協力ありがとうございました。
+        </p>
+      `;
+    }
+
+    function showError(message) {
+      const app = document.getElementById('app');
+
+      app.innerHTML = `
+        <h1>エラー</h1>
+        <div class="danger">
+          ${escapeHtml(message)}
+        </div>
+        <p class="small">
+          改善しない場合は管理者に連絡してください。
+        </p>
+      `;
+    }
+
+    function escapeHtml(value) {
+      if (value === null || value === undefined) {
+        return '';
+      }
+
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>
