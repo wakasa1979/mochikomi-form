@@ -85,6 +85,7 @@
       font-size: 13px;
       color: #666;
       word-break: break-all;
+      line-height: 1.6;
     }
   </style>
 </head>
@@ -96,7 +97,9 @@
 
       <div class="notice">
         社員番号が入ったQRコードをカメラにかざしてください。<br>
-        読み取りに成功すると、自動でログイン画面へ戻ります。
+        読み取りに成功すると、自動でログイン画面へ戻ります。<br><br>
+        QRコードに近づけすぎるとピントが合わない場合があります。<br>
+        10〜25cmほど離して、QRコード全体が画面内に入るようにしてください。
       </div>
 
       <button onclick="startScanner()">カメラを起動してQRを読む</button>
@@ -172,10 +175,62 @@
           function() {}
         );
 
+        // 対応端末では初期倍率を3倍にする
+        await applyInitialZoom(3);
+
         showMessage('カメラを起動しました。QRコードを枠内に表示してください。', false);
 
       } catch (error) {
         showMessage('カメラを起動できませんでした。ブラウザのカメラ許可設定を確認してください。', true);
+      }
+    }
+
+    async function applyInitialZoom(targetZoom) {
+      try {
+        const video = document.querySelector('#reader video');
+
+        if (!video || !video.srcObject) {
+          showMessage('カメラは起動しましたが、この端末ではズーム設定を確認できませんでした。', false);
+          return;
+        }
+
+        const tracks = video.srcObject.getVideoTracks();
+
+        if (!tracks || tracks.length === 0) {
+          showMessage('カメラは起動しましたが、映像トラックを取得できませんでした。', false);
+          return;
+        }
+
+        const track = tracks[0];
+
+        if (!track.getCapabilities || !track.applyConstraints) {
+          showMessage('カメラは起動しましたが、この端末はズーム制御に対応していません。', false);
+          return;
+        }
+
+        const capabilities = track.getCapabilities();
+
+        if (!capabilities.zoom) {
+          showMessage('カメラは起動しましたが、この端末はズーム制御に対応していません。', false);
+          return;
+        }
+
+        const minZoom = capabilities.zoom.min || 1;
+        const maxZoom = capabilities.zoom.max || targetZoom;
+
+        const zoomValue = Math.min(Math.max(targetZoom, minZoom), maxZoom);
+
+        await track.applyConstraints({
+          advanced: [
+            { zoom: zoomValue }
+          ]
+        });
+
+        showMessage('カメラを起動しました。初期倍率を約' + zoomValue + '倍に設定しました。QRコードを枠内に表示してください。', false);
+
+      } catch (error) {
+        // ズーム非対応端末では通常倍率のまま使う
+        showMessage('カメラを起動しました。この端末ではズーム設定ができないため、通常倍率で読み取ります。', false);
       }
     }
 
@@ -187,12 +242,6 @@
       isScanned = true;
 
       const loginId = normalizeQrValue(decodedText);
-
-      try {
-        navigator.vibrate?.(100);
-      } catch (e) {
-        // バイブ非対応端末では何もしない
-      }
 
       if (html5QrCode) {
         try {
