@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>QRコード読み取り</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f6f8;
+      margin: 0;
+      padding: 16px;
+      color: #222;
+    }
+
+    .container {
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+      font-size: 22px;
+      margin: 0 0 12px;
+      line-height: 1.4;
+    }
+
+    p {
+      line-height: 1.7;
+    }
+
+    button {
+      width: 100%;
+      border: none;
+      border-radius: 14px;
+      padding: 15px 16px;
+      font-size: 17px;
+      font-weight: 800;
+      margin-top: 14px;
+      background: #06c755;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: #607d8b;
+    }
+
+    #reader {
+      margin-top: 16px;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .notice {
+      background: #eaf3ff;
+      border-left: 5px solid #1976d2;
+      padding: 12px;
+      border-radius: 10px;
+      margin: 12px 0;
+      line-height: 1.7;
+    }
+
+    .danger {
+      background: #ffecec;
+      border-left: 5px solid #e53935;
+      padding: 12px;
+      border-radius: 10px;
+      margin: 12px 0;
+      line-height: 1.7;
+      color: #b71c1c;
+      font-weight: 700;
+    }
+
+    .small {
+      font-size: 13px;
+      color: #666;
+      word-break: break-all;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>QRコード読み取り</h1>
+
+      <div class="notice">
+        社員番号が入ったQRコードをカメラにかざしてください。<br>
+        読み取りに成功すると、自動でログイン画面へ戻ります。
+      </div>
+
+      <button onclick="startScanner()">カメラを起動してQRを読む</button>
+      <button class="secondary" onclick="goBack()">戻る</button>
+
+      <div id="message" class="small"></div>
+      <div id="reader"></div>
+    </div>
+  </div>
+
+  <script>
+    let html5QrCode = null;
+    let isScanned = false;
+
+    const params = new URLSearchParams(window.location.search);
+    const returnUrl = params.get('returnUrl') || '';
+
+    function showMessage(text, isError) {
+      const message = document.getElementById('message');
+      message.className = isError ? 'danger' : 'small';
+      message.textContent = text;
+    }
+
+    function normalizeQrValue(value) {
+      let text = String(value || '').trim();
+
+      // QRの中身がURLの場合、id / loginId / employeeNo を優先して取り出す
+      try {
+        const url = new URL(text);
+        const fromUrl =
+          url.searchParams.get('id') ||
+          url.searchParams.get('loginId') ||
+          url.searchParams.get('employeeNo') ||
+          url.searchParams.get('社員番号');
+
+        if (fromUrl) {
+          return String(fromUrl).trim();
+        }
+      } catch (e) {
+        // URLでなければ無視
+      }
+
+      // 「社員番号:1234」「ID=1234」のような形式にも一応対応
+      const match = text.match(/(?:社員番号|employeeNo|loginId|ID|id)[：:\s=]*([A-Za-z0-9_-]+)/i);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+
+      // 通常はQRの中身がそのまま社員番号
+      return text;
+    }
+
+    async function startScanner() {
+      if (!returnUrl) {
+        showMessage('戻り先URLが指定されていません。管理者に確認してください。', true);
+        return;
+      }
+
+      if (html5QrCode) {
+        return;
+      }
+
+      try {
+        html5QrCode = new Html5Qrcode('reader');
+
+        await html5QrCode.start(
+          { facingMode: 'environment' },
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 }
+          },
+          onScanSuccess,
+          function() {}
+        );
+
+        showMessage('カメラを起動しました。QRコードを枠内に表示してください。', false);
+
+      } catch (error) {
+        showMessage('カメラを起動できませんでした。ブラウザのカメラ許可設定を確認してください。', true);
+      }
+    }
+
+    async function onScanSuccess(decodedText) {
+      if (isScanned) {
+        return;
+      }
+
+      isScanned = true;
+
+      const loginId = normalizeQrValue(decodedText);
+
+      try {
+        navigator.vibrate?.(100);
+      } catch (e) {
+        // バイブ非対応端末では何もしない
+      }
+
+      if (html5QrCode) {
+        try {
+          await html5QrCode.stop();
+        } catch (e) {}
+      }
+
+      const separator = returnUrl.includes('?') ? '&' : '?';
+      const nextUrl = returnUrl + separator + 'loginId=' + encodeURIComponent(loginId);
+
+      window.location.href = nextUrl;
+    }
+
+    function goBack() {
+      if (returnUrl) {
+        window.location.href = returnUrl;
+      } else {
+        history.back();
+      }
+    }
+  </script>
+</body>
+</html>
